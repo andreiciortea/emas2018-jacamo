@@ -21,4 +21,6 @@ public class EVE {
   public static final IRI hasName               = createIRI("hasName");
   public static final IRI hasCartagoArtifact    = createIRI("hasCartagoArtifact");
   public static final IRI hasInitParam          = createIRI("hasInitParam");
+  
+  public static final IRI usesWebSubHub         = createIRI("usesWebSubHub");
 }

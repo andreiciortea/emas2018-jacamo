@@ -17,25 +17,27 @@
 
 +!environment_loaded(EnvIRI)[source(Ag)] : true <-
   .print("Received request from ", Ag, " to load enviornment: ", EnvIRI);
-  makeArtifact("envar", "emas.infra.WebEnvironmentArtifact", [EnvIRI], _);
+  makeArtifact("envar", "emas.infra.WebEnvironmentArtifact", [EnvIRI], WebEnvArtID);
+  focusWhenAvailable("envar");
+  +web_environment_artifact_id(WebEnvArtID);
   getWorkspaceIRIs(WorkspaceIRIs);
-  .print(WorkspaceIRIs);
+  .print("Available workspaces: ", WorkspaceIRIs);
   !buildWorkspaces(WorkspaceIRIs);
-  ?artifact_details(ArtifactIRI, ArtifactName, "emas.EventGeneratorArtifact", ArtID);
-  registerArtifact(ArtifactIRI, ArtID);
-  .print("Done, notifying agent ", Ag);
+  .print("Done, notifying agent ", Ag, " of created workspaces!");
   getWorkspaceNames(WorkspaceNames);
   .send(Ag, tell, environment_loaded(EnvIRI, WorkspaceNames)).
 
 
 +!buildWorkspaces([]) : true .
-  
-+!buildWorkspaces([WorkspaceIRI | T]) : true <-
+
++!buildWorkspaces([WorkspaceIRI | T]) : web_environment_artifact_id(WebEnvArtID) <-
   .print("Creating workspace ", WorkspaceIRI);
-  getWorkspaceDetails(WorkspaceIRI, WorkspaceName, WorkspaceArtifactIRIs);
+  getWorkspaceDetails(WorkspaceIRI, WorkspaceName, WorkspaceWebSubHubIRI, WorkspaceArtifactIRIs);
   .print("[Workspace: ", WorkspaceIRI, "] Name: ", WorkspaceName, ", available artifacts: ", WorkspaceArtifactIRIs);
   createWorkspace(WorkspaceName);
   joinWorkspace(WorkspaceName, WorkspaceArtId);
+  +artifact_details(WorkspaceIRI, WorkspaceName, WorkspaceArtifactIRIs, WorkspaceArtId);
+  registerArtifactForNotifications(WorkspaceIRI, WebEnvArtID, WorkspaceWebSubHubIRI);
   !buildArtifacts(WorkspaceName, WorkspaceArtifactIRIs);
   !buildWorkspaces(T).
 
@@ -43,17 +45,39 @@
 +!buildArtifacts(WorkspaceName, []) : true .
 
 +!buildArtifacts(WorkspaceName, [ArtifactIRI | T]) : true <-
-  getArtifactDetails(ArtifactIRI, ArtifactName, ArtifactClassName, InitParams);
-  .print("[Artifact: ", ArtifactIRI, "] Name: ", ArtifactName, ", class name: ", ArtifactClassName, ", init params: ", InitParams);
-  makeArtifact(ArtifactName, ArtifactClassName, InitParams, ArtID);
-  focusWhenAvailable(ArtifactName);
-  .print("Artifact created and focused!");
-  +artifact_details(ArtifactIRI, ArtifactName, ArtifactClassName, ArtID);
-  // Just a test
-  lookupArtifactByType(ArtifactClassName, ArtID2);
-  .print("Found artifact of type ", ArtifactClassName, " with ID ", ArtID2);
-  .broadcast(tell, artifact_available(ArtifactClassName, ArtifactName, WorkspaceName));
+  getArtifactDetails(ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI);
+  .print("[Artifact: ", ArtifactIRI, "] Name: ", ArtifactName, ", class name: ", ArtifactClassName, ", init params: ", InitParams, ", web sub hub IRI: ", WebSubHubIRI);
+  !makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI);
   !buildArtifacts(WorkspaceName, T).
+
+
++artifact_created(WorkspaceName, ArtifactIRI) : true <-
+  .print("New artifact create in workspace ", WorkspaceName, ": ", ArtifactIRI);
+  getArtifactDetails(ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI);
+  .print("[Artifact: ", ArtifactIRI, "] Name: ", ArtifactName, ", class name: ", ArtifactClassName, ", init params: ", InitParams, ", web sub hub IRI: ", WebSubHubIRI);
+  !makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI).
+
+
++!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI)
+  : .ground([WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI])
+  <-
+  .print("Got an artifact with a WebSubIRI!");
+  !createCartagoArtifact(WorkspaceName, ArtifactName, ArtifactClassName, InitParams, ArtID);
+  registerArtifactForNotifications(ArtifactIRI, ArtID, WebSubHubIRI);
+  .print("Subscribed artifact ", ArtifactName, " for notifications!").
+
++!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI)
+  : .ground([WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams])
+  <-
+  !createCartagoArtifact(WorkspaceName, ArtifactName, ArtifactClassName, InitParams, ArtID).
+
++!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI) : true <-
+  .print("Discovered an artifact I cannot create: ", ArtifactIRI).
+
++!createCartagoArtifact(WorkspaceName, ArtifactName, ArtifactClassName, InitParams, ArtID) : true <-
+  makeArtifact(ArtifactName, ArtifactClassName, InitParams, ArtID);
+  +artifact_details(ArtifactIRI, ArtifactName, ArtifactClassName, ArtID);
+  .broadcast(tell, artifact_available(ArtifactClassName, ArtifactName, WorkspaceName)).
 
 
 { include("$jacamoJar/templates/common-cartago.asl") }

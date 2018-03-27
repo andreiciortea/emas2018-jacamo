@@ -3,6 +3,7 @@ package emas;
 import cartago.Artifact;
 import cartago.LINK;
 import cartago.OPERATION;
+import emas.infra.Notification;
 
 public class EventGeneratorArtifact extends Artifact {
 
@@ -11,8 +12,8 @@ public class EventGeneratorArtifact extends Artifact {
   }
   
   @LINK
-  void onNotification(String notification) {
-    signal("event", notification);
+  void onNotification(Notification notification) {
+    signal("event", notification.getMessage());
   }
   
 }

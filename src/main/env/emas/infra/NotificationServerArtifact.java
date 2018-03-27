@@ -26,9 +26,8 @@ import cartago.INTERNAL_OPERATION;
 import cartago.OPERATION;
 
 public class NotificationServerArtifact extends Artifact {
-  
   private Map<String,ArtifactId> artifactRegistry;
-  private Map<String,AbstractQueue<String>> notificationQueues;
+  private AbstractQueue<Notification> notifications;
   
   private Server server;
   private boolean httpServerRunning;
@@ -40,20 +39,19 @@ public class NotificationServerArtifact extends Artifact {
     server.setHandler(new NotificationHandler());
     
     artifactRegistry = new Hashtable<String,ArtifactId>();
-    notificationQueues = new Hashtable<String,AbstractQueue<String>>();
+    notifications = new ConcurrentLinkedQueue<Notification>();
   }
   
   @OPERATION
-  void registerArtifact(String artifactIRI, ArtifactId artifactId) {
+  void registerArtifactForNotifications(String artifactIRI, ArtifactId artifactId, String hubIRI) {
     artifactRegistry.put(artifactIRI, artifactId);
-    notificationQueues.put(artifactIRI, new ConcurrentLinkedQueue<String>());
+    sendSubscribeRequest(hubIRI, artifactIRI);
   }
   
   @OPERATION
   void start() {
     try {
       httpServerRunning = true;
-      subscribeForNotifications();
       
       execInternalOp("deliverNotifications");
       
@@ -76,18 +74,16 @@ public class NotificationServerArtifact extends Artifact {
   @INTERNAL_OPERATION
   void deliverNotifications() {
     while (httpServerRunning) {
-      for (String artifactIRI : notificationQueues.keySet()) {
-        AbstractQueue<String> notifications = notificationQueues.get(artifactIRI);
-        ArtifactId artifactId = artifactRegistry.get(artifactIRI);
+      while (!notifications.isEmpty()) {
+        Notification n = notifications.poll();
+        ArtifactId artifactId = artifactRegistry.get(n.getEntityIRI());
         
-        while (!notifications.isEmpty()) {
-          String n = notifications.poll();
+        try {
           
-          try {
-            execLinkedOp(artifactId, "onNotification", n);
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
+          execLinkedOp(artifactId, "onNotification", n);
+          
+        } catch (Exception e) {
+          e.printStackTrace();
         }
       }
       
@@ -95,15 +91,15 @@ public class NotificationServerArtifact extends Artifact {
     }
   }
   
-  private void subscribeForNotifications() {
+  private void sendSubscribeRequest(String hubIRI, String artifactIRI) {
     HttpClient client = new HttpClient();
     try {
       client.start();
       
-      ContentResponse response = client.POST("http://localhost:8080/hub/")
+      ContentResponse response = client.POST(hubIRI)
           .content(new StringContentProvider("{"
               + "\"hub.mode\" : \"subscribe\","
-              + "\"hub.topic\" : \"http://localhost:8080/artifacts/event-gen\","
+              + "\"hub.topic\" : \"" + artifactIRI + "\","
               + "\"hub.callback\" : \"http://localhost:8081/notifications/\""
               + "}"), "application/json")
           .send();
@@ -149,7 +145,7 @@ public class NotificationServerArtifact extends Artifact {
 //          String notification = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
 //          
 //          try {
-//            execLinkedOp(artifactId, "onNotification", notification);
+//            execLinkedOp(artifactId, "onNotification", new Notification(artifactIRI, notification));
 //          } catch (OperationException e) {
 //            log(e.getMessage());
 //            e.printStackTrace();
@@ -160,13 +156,10 @@ public class NotificationServerArtifact extends Artifact {
 //          response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 //        }
         
-        AbstractQueue<String> queue = notificationQueues.get(artifactIRI);
-        
-        if (queue != null) {
+        if (artifactRegistry.containsKey(artifactIRI)) {
           String payload = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
           
-          queue.add(payload);
-          notificationQueues.put(artifactIRI, queue);
+          notifications.add(new Notification(artifactIRI, payload));
           
           response.setStatus(HttpServletResponse.SC_OK);
         } else {

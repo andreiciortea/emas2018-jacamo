@@ -1,87 +1,98 @@
 package emas.infra;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.commons.rdf.api.Graph;
 import org.apache.commons.rdf.api.IRI;
-import org.apache.commons.rdf.api.Literal;
-import org.apache.commons.rdf.api.RDF;
 import org.apache.commons.rdf.api.Triple;
-import org.apache.commons.rdf.rdf4j.RDF4J;
 
 import cartago.Artifact;
+import cartago.LINK;
 import cartago.OPERATION;
 import cartago.OpFeedbackParam;
 import emas.vocabularies.EVE;
 
 public class WebEnvironmentArtifact extends Artifact {
-  
-  private WebEntityClient client;
-  
   private String environmentIRI;
-  private RDF rdfImpl = new RDF4J();
+  private Optional<WebEntity> environment;
+  private List<String> workspaceList;
+  
+  private Map<String,WebEntity> workspaces;
   
   void init(String environmentIRI) {
     this.environmentIRI = environmentIRI;
-    client = new WebEntityClient();
+    this.environment = Optional.empty();
+    this.workspaceList = new ArrayList<String>();
+    this.workspaces = new Hashtable<String,WebEntity>();
   }
   
   @OPERATION
   void getWorkspaceIRIs(OpFeedbackParam<String[]> workspaceIRIs) {
-    Set<IRI> workspaceIRIsSet = getMemberIRIs(environmentIRI);
-    workspaceIRIs.set(transformIRISetToArray(workspaceIRIsSet));
+    fetchWorkspaceList();
+    
+    if (!workspaceList.isEmpty()) {
+      String[] workspaceIRIArray = new String[workspaceList.size()];
+      workspaceIRIArray = workspaceList.toArray(workspaceIRIArray);
+      
+      workspaceIRIs.set(workspaceIRIArray);
+    }
   }
   
   @OPERATION
-  void getWorkspaceDetails(String workspaceIRIStr, OpFeedbackParam<String> name, OpFeedbackParam<String[]> artifactIRIs) {
-    Optional<Graph> graphOpt = client.fetchEntity(workspaceIRIStr);
+  void getWorkspaceDetails(String workspaceIRIStr, OpFeedbackParam<String> name, 
+      OpFeedbackParam<String> webSubHubIRI, OpFeedbackParam<String[]> artifactIRIs) {
     
-    if (graphOpt.isPresent()) {
-      Graph workspaceGraph = graphOpt.get();
-      IRI workspaceIRI = rdfImpl.createIRI(workspaceIRIStr);
+    fetchWorkspaceList();
+    
+    if (workspaceList.contains(workspaceIRIStr)) {
+      Optional<WebEntity> workspaceOpt = WebEntity.fetchEntity(workspaceIRIStr);
       
-      Optional<String> workspaceName = workspaceGraph
-                                          .stream(workspaceIRI, EVE.hasName, null)
-                                          .findAny().map(Triple::getObject)
-                                          .filter(obj -> obj instanceof Literal)
-                                          .map(literalName -> ((Literal)literalName).getLexicalForm());
-      
-      if (workspaceName.isPresent()) {
-        name.set(workspaceName.get());
+      if (workspaceOpt.isPresent()) {
+        WebEntity workspaceEntity = workspaceOpt.get();
+        workspaces.put(workspaceIRIStr, workspaceEntity);
+        
+        if (workspaceEntity.getName().isPresent()) {
+          name.set(workspaceEntity.getName().get());
+        }
+        
+        if (workspaceEntity.isMutable()) {
+          webSubHubIRI.set(workspaceEntity.getSubscriptionIRI().getIRIString());
+        }
+        
+        List<IRI> artifactList = workspaceEntity.getMembers();
+        
+        if (!artifactList.isEmpty()) {
+          String[] artifactIRIArray = artifactList.stream()
+                                        .map(iri -> iri.getIRIString())
+                                        .toArray(String[]::new);
+          artifactIRIs.set(artifactIRIArray);
+        }
       }
-      
-      String[] artifactIRIArray = workspaceGraph
-                                  .stream(workspaceIRI, EVE.contains, null)
-                                  .map(Triple::getObject)
-                                  .filter(obj -> obj instanceof IRI)
-                                  .map(iri -> ((IRI) iri).getIRIString())
-                                  .toArray(String[]::new);
-          
-      artifactIRIs.set(artifactIRIArray);
     }
   }
   
   @OPERATION
   void getWorkspaceNames(OpFeedbackParam<String[]> workspaceNames) {
     Set<String> workspaceNamesSet = new HashSet<String>();
-    Set<IRI> workspaceIRIs = getMemberIRIs(environmentIRI);
     
-    for (IRI workspaceIRI : workspaceIRIs) {
-      Optional<Graph> graphOpt = client.fetchEntity(workspaceIRI.getIRIString());
+    fetchWorkspaceList();
+    
+    for (String workspaceIRI : workspaceList) {
+      Optional<WebEntity> workspaceOpt = WebEntity.fetchEntity(workspaceIRI);
       
-      if (graphOpt.isPresent()) {
-        Graph workspaceGraph = graphOpt.get();
+      if (workspaceOpt.isPresent()) {
+        WebEntity workspace = workspaceOpt.get();
+        workspaces.put(workspaceIRI, workspace);
         
-        Optional<String> workspaceName = workspaceGraph
-                                            .stream(workspaceIRI, EVE.hasName, null)
-                                            .findAny().map(Triple::getObject)
-                                            .filter(obj -> obj instanceof Literal)
-                                            .map(literalName -> ((Literal)literalName).getLexicalForm());
-        
-        if (workspaceName.isPresent()) {
-          workspaceNamesSet.add(workspaceName.get());
+        if (workspace.getName().isPresent()) {
+          workspaceNamesSet.add(workspace.getName().get());
         }
       }
     }
@@ -91,74 +102,114 @@ public class WebEnvironmentArtifact extends Artifact {
   
   @OPERATION
   void getArtifactIRIs(String workspaceIRI, OpFeedbackParam<String[]> artifactIRIs) {
-    Set<IRI> artifactIRIsSet = getMemberIRIs(workspaceIRI);
-    artifactIRIs.set(transformIRISetToArray(artifactIRIsSet));
+    if (workspaceList.contains(workspaceIRI)) {
+      Optional<WebEntity> workspaceOpt = WebEntity.fetchEntity(workspaceIRI);
+      
+      if (workspaceOpt.isPresent()) {
+        workspaces.put(workspaceIRI, workspaceOpt.get());
+        List<IRI> artifactList = workspaceOpt.get().getMembers();
+        
+        if (!artifactList.isEmpty()) {
+          String[] artifactIRIArray = artifactList.stream()
+                                        .map(iri -> iri.getIRIString())
+                                        .toArray(String[]::new);
+          
+          artifactIRIs.set(artifactIRIArray);
+        }
+      }
+    }
   }
   
   @OPERATION
   void getArtifactDetails(String artifactIRIStr, OpFeedbackParam<String> name, 
-      OpFeedbackParam<String> className, OpFeedbackParam<String[]> params) {
+      OpFeedbackParam<String> className, OpFeedbackParam<String[]> initParams, 
+      OpFeedbackParam<String> webSubHubIRI) {
     
-    Optional<Graph> graphOpt = client.fetchEntity(artifactIRIStr);
+    Optional<WebEntity> artifactOpt = WebEntity.fetchEntity(artifactIRIStr);
     
-    if (graphOpt.isPresent()) {
-      Graph graph = graphOpt.get();
-      IRI artifactIRI = rdfImpl.createIRI(artifactIRIStr);
+    if (artifactOpt.isPresent()) {
+      WebEntity artifact = artifactOpt.get();
       
-      Optional<String> artfiactName =
-          graph.stream(artifactIRI, EVE.hasName, null)
-                  .findAny().map(Triple::getObject)
-                  .filter(obj -> obj instanceof Literal)
-                  .map(literalName -> ((Literal)literalName).getLexicalForm());
-      
-      if (artfiactName.isPresent()) {
-        name.set(artfiactName.get());
+      if (artifact.getName().isPresent()) {
+        name.set(artifact.getName().get());
       }
       
-      Optional<String> artfiactClassName =
-          graph.stream(artifactIRI, EVE.hasCartagoArtifact, null)
-                  .findAny().map(Triple::getObject)
-                  .filter(obj -> obj instanceof Literal)
-                  .map(literalName -> ((Literal)literalName).getLexicalForm());
+      Optional<String> artfiactClassName = artifact.getStringObject(EVE.hasCartagoArtifact);
       
       if (artfiactClassName.isPresent()) {
         className.set(artfiactClassName.get());
       }
       
       String[] artfiactInitParams =
-          graph.stream(artifactIRI, EVE.hasInitParam, null)
-                  .map(Triple::getObject)
-                  .map(obj -> obj.toString())
-                  .toArray(String[]::new);
+          artifact.getGraph().stream(artifact.getIRI(), EVE.hasInitParam, null)
+                              .map(Triple::getObject)
+                              .map(obj -> obj.toString())
+                              .toArray(String[]::new);
       
       if (artfiactInitParams.length > 0) {
-        params.set(artfiactInitParams);
+        initParams.set(artfiactInitParams);
       } else {
-        params.set(new String[0]);
+        initParams.set(new String[0]);
       }
-    }
-  }
-  
-  private String[] transformIRISetToArray(Set<IRI> iriSet) {
-    return iriSet.stream().map(iri -> iri.getIRIString()).toArray(String[]::new);
-  }
-  
-  // TODO: validate member type
-  private Set<IRI> getMemberIRIs(String containerIRI) {
-    Set<IRI> memberIRIs = new HashSet<IRI>();
-    
-    Optional<Graph> graphOpt = client.fetchEntity(containerIRI);
-    
-    if (graphOpt.isPresent()) {
-      Graph environmentGraph = graphOpt.get();
       
-      for (Triple triple : environmentGraph.iterate(rdfImpl.createIRI(containerIRI), EVE.contains, null)) {
-        if (triple.getObject() instanceof IRI) { 
-          memberIRIs.add((IRI) triple.getObject());
-        }
+      if (artifact.isMutable()) {
+        webSubHubIRI.set(artifact.getSubscriptionIRI().getIRIString());
       }
     }
+  }
+  
+  @LINK
+  void onNotification(Notification notification) {
+    String entityIRI = notification.getEntityIRI();
     
-    return memberIRIs;
+    if (entityIRI.equals(environmentIRI)) {
+      // TODO
+    } else if (workspaceList.contains(entityIRI)) {
+      try {
+        WebEntity cachedWorkspace = workspaces.get(entityIRI);
+        Optional<WebEntity> newWorkspaceOpt = WebEntity.buildFromString(entityIRI, notification.getMessage(), null);
+        
+        if (cachedWorkspace != null && newWorkspaceOpt.isPresent()) {
+          WebEntity newWorkspace = newWorkspaceOpt.get();
+          
+          List<IRI> oldArtifactList = cachedWorkspace.getMembers();
+          List<IRI> newArtifactList = newWorkspaceOpt.get().getMembers();
+          
+          Optional<String> workspaceName = newWorkspace.getName();
+          
+          if (workspaceName.isPresent()) {
+            signalArtifactsCreated(workspaceName.get(), oldArtifactList, newArtifactList);
+            // TODO: signal deleted artifacts
+            // TODO: updated cached workspace, note that the notificaiton currently does not include
+            // the WebSub hub IRI
+          }
+        }
+      } catch (IllegalArgumentException | IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+  
+  private void signalArtifactsCreated(String workspaceName, List<IRI> oldArtifactList, List<IRI> newArtifactList) {
+    newArtifactList.removeAll(oldArtifactList);
+    
+    if (!newArtifactList.isEmpty()) {
+      newArtifactList.stream()
+        .map(artifactIRI -> artifactIRI.getIRIString())
+        .forEach(artifactIRI -> {
+          signal("artifact_created", workspaceName, artifactIRI);
+        });
+    }
+  }
+  
+  private void fetchWorkspaceList() {
+    environment = WebEntity.fetchEntity(environmentIRI);
+    
+    if (environment.isPresent()) {
+      workspaceList = environment.get()
+                        .getMembers().stream()
+                        .map(iri -> iri.getIRIString())
+                        .collect(Collectors.toList());
+    }
   }
 }
