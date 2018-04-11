@@ -1,0 +1,4 @@
+include 'emas2018-app', 'wot-td-parser'
+
+rootProject.name = 'EMAS2018'
+

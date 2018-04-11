@@ -3,6 +3,8 @@ build/
 bin/
 .settings
 .DS_Store
+.classpath
+.project
 
 # Ignore Gradle GUI config
 gradle-app.setting

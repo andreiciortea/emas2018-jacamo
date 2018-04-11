@@ -1,0 +1,46 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+defaultTasks 'runJaCaMo'
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/env/'
+        }
+    }
+}
+
+repositories {
+    jcenter()
+    flatDir {
+       dirs 'jacamo-jars'
+    }
+}
+
+dependencies {
+    compile 'org.apache.httpcomponents:httpclient:4.5.5'
+    compile 'org.apache.commons:commons-rdf-rdf4j:0.5.0'
+    
+    compile group: 'org.eclipse.jetty.aggregate', name: 'jetty-all', version: '9.0.0.RC2'
+
+    compile name: 'cartago-2.3-SNAPSHOT'
+    
+    runtime name: 'jacamo-0.7-SNAPSHOT'
+    runtime name: 'jason-2.1'
+    runtime name: 'jaca-2.3-SNAPSHOT'
+}
+
+task runJaCaMo(type: JavaExec, dependsOn: classes) {
+//    println "sourceSets.main.runtimeClasspath"
+//    sourceSets.main.compileClasspath.each { println it }
+    
+    if(project.hasProperty('jcmFile')){
+        args(jcmFile)
+    } else {
+        args('emas2018.jcm')
+    }
+    
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'jacamo.infra.JaCaMoLauncher'
+}

@@ -43,7 +43,7 @@ public class HueArtifact extends Artifact {
 	@OPERATION
 	void turnLightOn() {
 	    log("Turning light on!");
-	    setState("{ \"on\" : true }");
+//	    setState("{ \"on\" : true }");
 	}
 	
 	@OPERATION
@@ -55,7 +55,7 @@ public class HueArtifact extends Artifact {
 	@OPERATION
 	void turnLightOff() {
 	    log("Turning light off!");
-	    setState("{ \"on\" : false }");
+//	    setState("{ \"on\" : false }");
 	}
 }
 
