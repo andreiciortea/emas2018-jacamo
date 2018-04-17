@@ -2,6 +2,8 @@
 
 environment_iri("http://localhost:8080/environments/env1").
 
+positive_color(0.409, 0.518).
+negative_color(0.167, 0.04).
 
 /* Initial goals */
 
@@ -31,8 +33,33 @@ environment_iri("http://localhost:8080/environments/env1").
   joinWorkspace(WorkspaceName, WorkspaceArtId);
   focusWhenAvailable(ArtifactName).
 
++thing_artifact_available(ArtifactIRI, ArtifactName, WorkspaceName) : true <-
+  .print("A thing artifact is available: " , ArtifactIRI);
+  joinWorkspace(WorkspaceName, WorkspaceArtId);
+  focusWhenAvailable(ArtifactName).
 
 /* Plans for handling positive and negative events */
+
++event("positive") 
+  : thing_artifact_available(_, ArtifactName, WorkspaceName) &
+    hasAction(_,"http://iotschema.org/SwitchOn")[artifact_name(_, ArtifactName)] 
+    & hasAction(_,"http://iotschema.org/SwitchOff")[artifact_name(_, ArtifactName)]
+    & hasAction(_,"http://iotschema.org/SetColor")[artifact_name(_, ArtifactName)]
+  <-
+  .print("There is a positive event and I can turn on a light via a thing: ", ArtifactName);
+  joinWorkspace(WorkspaceName, WorkspaceArtId);
+  ?positive_color(CIEx, CIEy);
+  act("http://iotschema.org/SetColor", [CIEx, CIEy])[artifact_name(ArtifactName)];
+  !thing_light_notification(ArtifactName).
+
++event("positive") 
+  : thing_artifact_available(_, ArtifactName, WorkspaceName) &
+    hasAction(_,"http://iotschema.org/SwitchOn")[artifact_name(_, ArtifactName)] 
+    & hasAction(_,"http://iotschema.org/SwitchOff")[artifact_name(_, ArtifactName)] 
+  <-
+  .print("There is a positive event and I can turn on a light via a thing: ", ArtifactName);
+  joinWorkspace(WorkspaceName, WorkspaceArtId);
+  !thing_light_notification(ArtifactName).
 
 +event("positive") : artifact_available("emas.HueArtifact", ArtifactName, WorkspaceName) <-
   .print("There is a positive event and I can turn on a light!");
@@ -43,6 +70,27 @@ environment_iri("http://localhost:8080/environments/env1").
   .print("There is a positive event, but I cannot notify anyone.").
 
 
++event("negative")
+  : thing_artifact_available(_, ArtifactName, WorkspaceName) &
+    hasAction(_,"http://iotschema.org/SwitchOn")[artifact_name(_, ArtifactName)] 
+    & hasAction(_,"http://iotschema.org/SwitchOff")[artifact_name(_, ArtifactName)]
+    & hasAction(_,"http://iotschema.org/SetColor")[artifact_name(_, ArtifactName)] 
+  <-
+  .print("There is a negative event and I can turn on a light via a thing: ", ArtifactName);
+  joinWorkspace(WorkspaceName, WorkspaceArtId);
+  ?negative_color(CIEx, CIEy);
+  act("http://iotschema.org/SetColor", [CIEx, CIEy])[artifact_name(ArtifactName)];
+  !thing_light_notification(ArtifactName).
+
++event("negative")
+  : thing_artifact_available(_, ArtifactName, WorkspaceName) &
+    hasAction(_,"http://iotschema.org/SwitchOn")[artifact_name(_, ArtifactName)] 
+    & hasAction(_,"http://iotschema.org/SwitchOff")[artifact_name(_, ArtifactName)] 
+  <-
+  .print("There is a negative event and I can turn on a light via a thing: ", ArtifactName);
+  joinWorkspace(WorkspaceName, WorkspaceArtId);
+  !thing_light_notification(ArtifactName).
+
 +event("negative") : artifact_available("emas.HueArtifact", ArtifactName, WorkspaceName) <-
   .print("There is a negative event and I can turn on a light!");
   joinWorkspace(WorkspaceName, WorkspaceArtId);
@@ -50,6 +98,11 @@ environment_iri("http://localhost:8080/environments/env1").
 
 +event("negative") : true <-
   .print("OMG, a negative event, but I cannot notify anyone!").
+
++!thing_light_notification(ArtifactName) : true <-
+  act("http://iotschema.org/SwitchOn", [])[artifact_name(ArtifactName)];
+  .wait(2000);
+  act("http://iotschema.org/SwitchOff", [])[artifact_name(ArtifactName)].
 
 +!light_notification(ArtifactName) : true <-
   turnLightOn[artifact_name(ArtifactName)];

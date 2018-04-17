@@ -32,6 +32,7 @@ import org.eclipse.rdf4j.rio.Rio;
 import org.eclipse.rdf4j.rio.helpers.StatementCollector;
 
 import emas.vocabularies.EVE;
+import emas.vocabularies.TD;
 
 public class WebEntity {
   private IRI entityIRI;
@@ -62,8 +63,19 @@ public class WebEntity {
     return subscriptionIRI.isPresent();
   }
   
+  public boolean isThing() {
+    IRI isA = (new RDF4J()).createIRI(org.eclipse.rdf4j.model.vocabulary.RDF.TYPE.stringValue());
+    return entityGraph.stream(entityIRI, isA, TD.Thing).findAny().isPresent();
+  }
+  
   public Optional<String> getName() {
-    return getStringObject(entityIRI, EVE.hasName);
+    Optional<String> eveName = getStringObject(entityIRI, EVE.hasName);
+    
+    if (eveName.isPresent()) {
+      return eveName;
+    }
+    
+    return getStringObject(entityIRI, TD.name);
   }
   
   public List<IRI> getMembers() {

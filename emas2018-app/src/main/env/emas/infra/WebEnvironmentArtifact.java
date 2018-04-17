@@ -121,9 +121,9 @@ public class WebEnvironmentArtifact extends Artifact {
   }
   
   @OPERATION
-  void getArtifactDetails(String artifactIRIStr, OpFeedbackParam<String> name, 
-      OpFeedbackParam<String> className, OpFeedbackParam<String[]> initParams, 
-      OpFeedbackParam<String> webSubHubIRI) {
+  void getArtifactDetails(String artifactIRIStr, OpFeedbackParam<String> name,
+      OpFeedbackParam<Boolean> isThing, OpFeedbackParam<String> className,
+      OpFeedbackParam<String[]> initParams, OpFeedbackParam<String> webSubHubIRI) {
     
     Optional<WebEntity> artifactOpt = WebEntity.fetchEntity(artifactIRIStr);
     
@@ -137,19 +137,26 @@ public class WebEnvironmentArtifact extends Artifact {
       Optional<String> artfiactClassName = artifact.getStringObject(EVE.hasCartagoArtifact);
       
       if (artfiactClassName.isPresent()) {
+        // We have a CArtAgO artifact description
         className.set(artfiactClassName.get());
+        
+        String[] artfiactInitParams =
+            artifact.getGraph().stream(artifact.getIRI(), EVE.hasInitParam, null)
+                                .map(Triple::getObject)
+                                .map(obj -> obj.toString())
+                                .toArray(String[]::new);
+        
+        if (artfiactInitParams.length > 0) {
+          initParams.set(artfiactInitParams);
+        } else {
+          initParams.set(new String[0]);
+        }
       }
       
-      String[] artfiactInitParams =
-          artifact.getGraph().stream(artifact.getIRI(), EVE.hasInitParam, null)
-                              .map(Triple::getObject)
-                              .map(obj -> obj.toString())
-                              .toArray(String[]::new);
-      
-      if (artfiactInitParams.length > 0) {
-        initParams.set(artfiactInitParams);
+      if (artifact.isThing()) {
+        isThing.set(true);
       } else {
-        initParams.set(new String[0]);
+        isThing.set(false);
       }
       
       if (artifact.isMutable()) {

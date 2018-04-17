@@ -45,20 +45,34 @@
 +!buildArtifacts(WorkspaceName, []) : true .
 
 +!buildArtifacts(WorkspaceName, [ArtifactIRI | T]) : true <-
-  getArtifactDetails(ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI);
+  getArtifactDetails(ArtifactIRI, ArtifactName, IsThing, ArtifactClassName, InitParams, WebSubHubIRI);
   .print("[Artifact: ", ArtifactIRI, "] Name: ", ArtifactName, ", class name: ", ArtifactClassName, ", init params: ", InitParams, ", web sub hub IRI: ", WebSubHubIRI);
-  !makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI);
+  !makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, IsThing, ArtifactClassName, InitParams, WebSubHubIRI);
   !buildArtifacts(WorkspaceName, T).
 
 
 +artifact_created(WorkspaceName, ArtifactIRI) : true <-
-  .print("New artifact create in workspace ", WorkspaceName, ": ", ArtifactIRI);
-  getArtifactDetails(ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI);
+  .print("New artifact created in workspace ", WorkspaceName, ": ", ArtifactIRI);
+  getArtifactDetails(ArtifactIRI, ArtifactName, IsThing, ArtifactClassName, InitParams, WebSubHubIRI);
   .print("[Artifact: ", ArtifactIRI, "] Name: ", ArtifactName, ", class name: ", ArtifactClassName, ", init params: ", InitParams, ", web sub hub IRI: ", WebSubHubIRI);
-  !makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI).
+  !makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, IsThing, ArtifactClassName, InitParams, WebSubHubIRI).
 
 
-+!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI)
++!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, true, _, _, WebSubHubIRI)
+  : .ground([WorkspaceName, ArtifactIRI, ArtifactName, WebSubHubIRI])
+  <-
+  .print("Got a thing artifact with a WebSubIRI!");
+  !createThingArtifact(WorkspaceName, ArtifactName, ArtifactIRI, ArtID);
+  registerArtifactForNotifications(ArtifactIRI, ArtID, WebSubHubIRI);
+  .print("Subscribed artifact ", ArtifactName, " for notifications!").
+
++!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, true, _, _, WebSubHubIRI)
+  : .ground([WorkspaceName, ArtifactIRI, ArtifactName])
+  <-
+  .print("Got a thing artifact without a WebSubIRI!");
+  !createThingArtifact(WorkspaceName, ArtifactName, ArtifactIRI, ArtID).
+
++!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, false, ArtifactClassName, InitParams, WebSubHubIRI)
   : .ground([WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI])
   <-
   .print("Got an artifact with a WebSubIRI!");
@@ -66,13 +80,19 @@
   registerArtifactForNotifications(ArtifactIRI, ArtID, WebSubHubIRI);
   .print("Subscribed artifact ", ArtifactName, " for notifications!").
 
-+!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI)
++!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, false, ArtifactClassName, InitParams, WebSubHubIRI)
   : .ground([WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams])
   <-
   !createCartagoArtifact(WorkspaceName, ArtifactName, ArtifactClassName, InitParams, ArtID).
 
-+!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, ArtifactClassName, InitParams, WebSubHubIRI) : true <-
++!makeArtifact(WorkspaceName, ArtifactIRI, ArtifactName, IsThing, ArtifactClassName, InitParams, WebSubHubIRI) : true <-
   .print("Discovered an artifact I cannot create: ", ArtifactIRI).
+
+
++!createThingArtifact(WorkspaceName, ArtifactName, ArtifactIRI, ArtID) : true <-
+  makeArtifact(ArtifactName, "emas.ThingArtifact", [ArtifactIRI], ArtID);
+  +artifact_details(ArtifactIRI, ArtifactName, ArtID);
+  .broadcast(tell, thing_artifact_available(ArtifactIRI, ArtifactName, WorkspaceName)).
 
 +!createCartagoArtifact(WorkspaceName, ArtifactName, ArtifactClassName, InitParams, ArtID) : true <-
   makeArtifact(ArtifactName, ArtifactClassName, InitParams, ArtID);

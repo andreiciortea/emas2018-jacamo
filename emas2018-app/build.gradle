@@ -19,6 +19,7 @@ repositories {
 }
 
 dependencies {
+    compile project(':wot-td-parser')
     compile 'org.apache.httpcomponents:httpclient:4.5.5'
     compile 'org.apache.commons:commons-rdf-rdf4j:0.5.0'
     
