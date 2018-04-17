@@ -19,4 +19,13 @@ public class TDVocab {
   public static final IRI name          = createIRI("name");
   public static final IRI base          = createIRI("base");
   public static final IRI interaction   = createIRI("interaction");
+  
+  public static final IRI form          = createIRI("form");
+  public static final IRI methodName    = createIRI("methodName");
+  public static final IRI href          = createIRI("href");
+  public static final IRI mediaType     = createIRI("mediaType");
+  public static final IRI rel           = createIRI("rel");
+  
+  public static final IRI inputSchema   = createIRI("inputSchema");
+  public static final IRI outputSchema  = createIRI("outputSchema");
 }

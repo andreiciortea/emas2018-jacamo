@@ -46,11 +46,10 @@ negative_color(0.167, 0.04).
     & hasAction(_,"http://iotschema.org/SwitchOff")[artifact_name(_, ArtifactName)]
     & hasAction(_,"http://iotschema.org/SetColor")[artifact_name(_, ArtifactName)]
   <-
-  .print("There is a positive event and I can turn on a light via a thing: ", ArtifactName);
+  .print("There is a positive event and I can turn on a green light via a thing: ", ArtifactName);
   joinWorkspace(WorkspaceName, WorkspaceArtId);
   ?positive_color(CIEx, CIEy);
-  act("http://iotschema.org/SetColor", [CIEx, CIEy])[artifact_name(ArtifactName)];
-  !thing_light_notification(ArtifactName).
+  !thing_colored_light_notification(ArtifactName, CIEx, CIEy).
 
 +event("positive") 
   : thing_artifact_available(_, ArtifactName, WorkspaceName) &
@@ -76,11 +75,10 @@ negative_color(0.167, 0.04).
     & hasAction(_,"http://iotschema.org/SwitchOff")[artifact_name(_, ArtifactName)]
     & hasAction(_,"http://iotschema.org/SetColor")[artifact_name(_, ArtifactName)] 
   <-
-  .print("There is a negative event and I can turn on a light via a thing: ", ArtifactName);
+  .print("There is a negative event and I can turn on a blue light via a thing: ", ArtifactName);
   joinWorkspace(WorkspaceName, WorkspaceArtId);
   ?negative_color(CIEx, CIEy);
-  act("http://iotschema.org/SetColor", [CIEx, CIEy])[artifact_name(ArtifactName)];
-  !thing_light_notification(ArtifactName).
+  !thing_colored_light_notification(ArtifactName, CIEx, CIEy).
 
 +event("negative")
   : thing_artifact_available(_, ArtifactName, WorkspaceName) &
@@ -98,6 +96,12 @@ negative_color(0.167, 0.04).
 
 +event("negative") : true <-
   .print("OMG, a negative event, but I cannot notify anyone!").
+
+
++!thing_colored_light_notification(ArtifactName, CIEx, CIEy) : true <-
+  act("http://iotschema.org/SetColor", [["http://iotschema.org/CIExData", CIEx], ["http://iotschema.org/CIEyData", CIEy]])[artifact_name(ArtifactName)];
+  .wait(2000);
+  act("http://iotschema.org/SwitchOff", [])[artifact_name(ArtifactName)].
 
 +!thing_light_notification(ArtifactName) : true <-
   act("http://iotschema.org/SwitchOn", [])[artifact_name(ArtifactName)];

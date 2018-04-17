@@ -1,24 +1,16 @@
 package ro.andreiciortea.wot.td;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import org.apache.commons.rdf.api.BlankNodeOrIRI;
 import org.apache.commons.rdf.api.Graph;
 import org.apache.commons.rdf.api.IRI;
-import org.apache.commons.rdf.api.Literal;
-import org.apache.commons.rdf.api.RDFTerm;
-import org.apache.commons.rdf.rdf4j.RDF4J;
-import org.eclipse.rdf4j.model.vocabulary.RDF;
-
-import ro.andreiciortea.wot.vocabularies.TDVocab;
 
 public class ThingDescription {
-  
-  private final IRI isA = (new RDF4J()).createIRI(RDF.TYPE.stringValue());
   
   private IRI thingIRI;
   private Graph tdGraph;
@@ -26,16 +18,22 @@ public class ThingDescription {
   private Optional<String> thingName;
   private Optional<IRI> baseIRI;
   
-  private Map<IRI,Action> actions;
+  private Map<BlankNodeOrIRI,Action> actions;
   
-  public ThingDescription(IRI thingIRI, Graph tdGraph) {
+  public ThingDescription(IRI thingIRI, Optional<String> thingName, Optional<IRI> baseIRI, 
+      Map<BlankNodeOrIRI, Action> actions, Graph tdGraph) {
+    
     this.thingIRI = thingIRI;
+    this.thingName = thingName;
+    
+    this.baseIRI = baseIRI;
+    this.actions = actions;
+    
     this.tdGraph = tdGraph;
-    
-    Optional<Literal> name = getFirstObjectAsLiteral(TDVocab.name);
-    this.thingName = (name.isPresent()) ? Optional.of(name.get().getLexicalForm()) : Optional.empty();
-    
-    this.baseIRI = getFirstObjectAsIRI(TDVocab.base);
+  }
+  
+  public IRI getThingIRI() {
+    return thingIRI;
   }
   
   public Optional<String> getName() {
@@ -46,67 +44,27 @@ public class ThingDescription {
     return baseIRI;
   }
   
-  public List<IRI> getActionTypes() {
-    List<BlankNodeOrIRI> actions = tdGraph.stream(thingIRI, TDVocab.interaction, null)
-        .filter(t -> t.getObject() instanceof BlankNodeOrIRI)
-        .map(t -> (BlankNodeOrIRI) t.getObject())
-        .filter(interaction -> tdGraph.contains(interaction, isA, TDVocab.Action))
-        .collect(Collectors.toList());
+  public Set<IRI> getSupportedActionTypes() {
+    Set<IRI> supportedActionTypes = new HashSet<IRI>();
     
-    List<IRI> actionTypes = new ArrayList<IRI>();
+    for (Entry<BlankNodeOrIRI, Action> entry : actions.entrySet()) {
+      supportedActionTypes.addAll(entry.getValue().getTypes());
+    }
     
-    actions.forEach(action -> {
-      List<IRI> actionTypeIRIs = tdGraph.stream(action, isA, null)
-                                .filter(triple -> (triple.getObject() instanceof IRI && !triple.getObject().equals(TDVocab.Action)))
-                                .map(triple -> (IRI) triple.getObject())
-                                .collect(Collectors.toList());
-      
-      if (!actionTypeIRIs.isEmpty()) {
-        // TODO: handle case with multiple action type IRIs
-        actionTypes.add(actionTypeIRIs.get(0));
-      }
-    });
-    
-    return actionTypes;
+    return supportedActionTypes;
   }
   
-  public HTTPForm getForm(IRI actionTypeIRI) {
+  public Optional<Action> getAction(IRI actionTypeIRI) {
+    for (Entry<BlankNodeOrIRI, Action> entry : actions.entrySet()) {
+      if (entry.getValue().getTypes().contains(actionTypeIRI)) {
+        return Optional.of(entry.getValue());
+      }
+    }
     
-    
-    return null;
+    return Optional.empty();
   }
   
   public Graph getGraph() {
     return tdGraph;
-  }
-  
-  private Optional<RDFTerm> getFirstObject(IRI propertyIRI) {
-    if (!tdGraph.contains(thingIRI, propertyIRI, null)) {
-      return Optional.empty();
-    }
-    
-    RDFTerm object = tdGraph.stream(thingIRI, TDVocab.name, null).findFirst().get().getObject();
-    
-    return Optional.of(object);
-  }
-  
-  private Optional<Literal> getFirstObjectAsLiteral(IRI propertyIRI) {
-    Optional<RDFTerm> term = getFirstObject(propertyIRI);
-    
-    if (term.isPresent() && term.get() instanceof Literal) {
-      return Optional.of((Literal) term.get());
-    }
-    
-    return Optional.empty();
-  }
-  
-  private Optional<IRI> getFirstObjectAsIRI(IRI propertyIRI) {
-    Optional<RDFTerm> term = getFirstObject(propertyIRI);
-    
-    if (term.isPresent() && term.get() instanceof IRI) {
-      return Optional.of((IRI) term.get());
-    }
-    
-    return Optional.empty();
   }
 }

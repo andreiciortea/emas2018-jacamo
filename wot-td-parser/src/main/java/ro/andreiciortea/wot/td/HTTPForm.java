@@ -2,15 +2,13 @@ package ro.andreiciortea.wot.td;
 
 import java.util.List;
 
-import org.apache.commons.rdf.api.IRI;
-
 public class HTTPForm {
   private String methodName;
-  private IRI href;
+  private String href;
   private String mediaType;
   private List<String> rel;
   
-  public HTTPForm(String methodName, IRI href, String mediaType, List<String> rel) {
+  public HTTPForm(String methodName, String href, String mediaType, List<String> rel) {
     this.methodName = methodName;
     this.href = href;
     this.mediaType = mediaType;
@@ -21,7 +19,7 @@ public class HTTPForm {
     return methodName;
   }
 
-  public IRI getHref() {
+  public String getHref() {
     return href;
   }
 

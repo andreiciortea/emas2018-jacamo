@@ -8,7 +8,16 @@ import org.apache.commons.rdf.api.IRI;
 
 public class Action extends Interaction {
   
-  public Action(BlankNodeOrIRI iri, Optional<String> name, List<IRI> types, List<HTTPForm> forms) {
+  private Optional<Schema> inputSchema;
+  
+  public Action(BlankNodeOrIRI iri, Optional<String> name, List<IRI> types, 
+      List<HTTPForm> forms, Optional<Schema> inputSchema) {
     super(iri, name, types, forms);
+    
+    this.inputSchema = inputSchema;
+  }
+  
+  public Optional<Schema> getInputSchema() {
+    return inputSchema;
   }
 }
