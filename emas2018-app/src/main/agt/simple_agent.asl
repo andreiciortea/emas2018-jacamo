@@ -99,7 +99,10 @@ negative_color(0.167, 0.04).
 
 
 +!thing_colored_light_notification(ArtifactName, CIEx, CIEy) : true <-
-  act("http://iotschema.org/SetColor", [["http://iotschema.org/CIExData", CIEx], ["http://iotschema.org/CIEyData", CIEy]])[artifact_name(ArtifactName)];
+  act("http://iotschema.org/SetColor", [
+          ["http://iotschema.org/CIExData", CIEx], 
+          ["http://iotschema.org/CIEyData", CIEy]
+        ])[artifact_name(ArtifactName)];
   .wait(2000);
   act("http://iotschema.org/SwitchOff", [])[artifact_name(ArtifactName)].
 
@@ -112,6 +115,3 @@ negative_color(0.167, 0.04).
   turnLightOn[artifact_name(ArtifactName)];
   .wait(2000);
   turnLightOff[artifact_name(ArtifactName)].
-
-
-{ include("$jacamoJar/templates/common-cartago.asl") }

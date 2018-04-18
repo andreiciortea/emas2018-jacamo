@@ -98,6 +98,3 @@
   makeArtifact(ArtifactName, ArtifactClassName, InitParams, ArtID);
   +artifact_details(ArtifactIRI, ArtifactName, ArtifactClassName, ArtID);
   .broadcast(tell, artifact_available(ArtifactClassName, ArtifactName, WorkspaceName)).
-
-
-{ include("$jacamoJar/templates/common-cartago.asl") }
