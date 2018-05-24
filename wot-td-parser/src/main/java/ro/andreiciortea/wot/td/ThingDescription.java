@@ -10,6 +10,8 @@ import org.apache.commons.rdf.api.BlankNodeOrIRI;
 import org.apache.commons.rdf.api.Graph;
 import org.apache.commons.rdf.api.IRI;
 
+import ro.andreiciortea.wot.td.interaction.Action;
+
 public class ThingDescription {
   
   private IRI thingIRI;

@@ -1,4 +1,4 @@
-package ro.andreiciortea.wot.td;
+package ro.andreiciortea.wot.td.interaction;
 
 import java.util.List;
 import java.util.Optional;
