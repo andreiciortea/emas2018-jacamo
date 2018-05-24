@@ -40,6 +40,10 @@ import org.eclipse.rdf4j.rio.Rio;
 import org.eclipse.rdf4j.rio.UnsupportedRDFormatException;
 import org.eclipse.rdf4j.rio.helpers.StatementCollector;
 
+import ro.andreiciortea.wot.td.interaction.Action;
+import ro.andreiciortea.wot.td.interaction.HTTPForm;
+import ro.andreiciortea.wot.td.schema.JSONSchema;
+import ro.andreiciortea.wot.td.schema.Schema;
 import ro.andreiciortea.wot.vocabularies.TDVocab;
 
 public class TDParser {
@@ -169,7 +173,7 @@ public class TDParser {
     
     List<HTTPForm> forms = getFormsForAction(tdGraph, actionNode);
     
-    Optional<Schema> inputSchema = parseSchemaForAction(actionNode, TDVocab.inputSchema);
+    Optional<Schema> inputSchema = parseSchemaForAction(tdGraph, actionNode, TDVocab.inputSchema);
     
     return Optional.of(new Action(actionNode, actionName, actionTypes, forms, inputSchema));
   }
@@ -221,8 +225,17 @@ public class TDParser {
     return new HTTPForm(methodName.get(), href.get(), mediaType.get(), rels);
   }
   
-  private static Optional<Schema> parseSchemaForAction(BlankNodeOrIRI actionIRI, IRI inputOrOuputSchemaIRI) {
-    // TODO
+  private static Optional<Schema> parseSchemaForAction(Graph tdGraph, BlankNodeOrIRI actionIRI, IRI hasSchemaIRI) {
+    Optional<BlankNodeOrIRI> schemaIRI = tdGraph.stream(actionIRI, hasSchemaIRI, null)
+                                                  .filter(triple -> triple.getObject() instanceof BlankNodeOrIRI)
+                                                  .map(triple -> (BlankNodeOrIRI) triple.getObject())
+                                                  .findFirst();
+    
+    if (schemaIRI.isPresent()) {
+      // TODO: support other types of schemas
+      return Optional.of(new JSONSchema(schemaIRI.get(), tdGraph));
+    }
+    
     return Optional.empty();
   }
   

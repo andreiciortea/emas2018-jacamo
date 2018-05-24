@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.commons.rdf.api.IRI;
-import org.apache.commons.rdf.rdf4j.RDF4J;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPut;
@@ -17,6 +16,10 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import ro.andreiciortea.wot.td.interaction.Action;
+import ro.andreiciortea.wot.td.interaction.HTTPForm;
+import ro.andreiciortea.wot.td.schema.Schema;
 
 public class TDHttpClient {
 
@@ -42,12 +45,12 @@ public class TDHttpClient {
         try {
           HttpUriRequest request = buildHttpRequest(actionTypeIRI, form, inputSchema, input);
           
-//          System.out.println("Ready to execute request for: " + request.getRequestLine());
+          System.out.println("Ready to execute request for: " + request.getRequestLine() + ", with input: " + input);
           
           HttpClient client = HttpClientBuilder.create().build();
           HttpResponse response = client.execute(request);
           
-//          System.out.println("Status code: " + response.getStatusLine().getStatusCode());
+          System.out.println("Status code: " + response.getStatusLine().getStatusCode());
           
           return response;
         } catch (Exception e) {
@@ -97,7 +100,7 @@ public class TDHttpClient {
     try {
       String payload = buildPayload(actionTypeIRI, inputSchema, input);
       
-//      System.out.println("Payload: " + payload);
+      System.out.println("Payload: " + payload);
       
       request.setEntity(new StringEntity(payload));
     } catch (UnsupportedEncodingException e) {
@@ -108,19 +111,8 @@ public class TDHttpClient {
   }
   
   private String buildPayload(IRI actionTypeIRI, Optional<Schema> schema, Map<IRI, Object> input) {
-    // TODO
-    
-    RDF4J rdfImpl = new RDF4J();
-    
-    IRI CIExIRI = rdfImpl.createIRI("http://iotschema.org/CIExData");
-    IRI CIEyIRI = rdfImpl.createIRI("http://iotschema.org/CIEyData");
-    
-    if (input.containsKey(CIExIRI) && input.containsKey(CIEyIRI)) {
-      return "{ \"on\" : true, \"xy\" : [" + (double) input.get(CIExIRI) + ", " + (double) input.get(CIEyIRI) + "] }";
-    } else if (actionTypeIRI.getIRIString().equals("http://iotschema.org/SwitchOn")) {
-      return "{ \"on\" : true }";
-    } else if (actionTypeIRI.getIRIString().equals("http://iotschema.org/SwitchOff")) {
-      return "{ \"on\" : false }";
+    if (schema.isPresent()) {
+      return schema.get().instantiate(input);
     }
     
     return "";

@@ -26,6 +26,16 @@ public class TDVocab {
   public static final IRI mediaType     = createIRI("mediaType");
   public static final IRI rel           = createIRI("rel");
   
+  public static final IRI Object        = createIRI("Object");
+  public static final IRI Array         = createIRI("Array");
+  public static final IRI Number        = createIRI("Number");
+  public static final IRI Boolean       = createIRI("Boolean");
+  
+  public static final IRI schema        = createIRI("schema");
   public static final IRI inputSchema   = createIRI("inputSchema");
   public static final IRI outputSchema  = createIRI("outputSchema");
+  public static final IRI schemaType    = createIRI("schemaType");
+  public static final IRI field         = createIRI("field");
+  public static final IRI items         = createIRI("items");
+  public static final IRI constant      = createIRI("const");
 }
