@@ -1,6 +1,8 @@
-= EMAS Demonstrator Application
+= EMAS 2018 Demonstrator Application
 
-Demonstrator application for our EMAS 2018 submission [1] (built with https://github.com/jacamo-lang/jacamo/[JaCaMo]).
+Demonstrator application for our EMAS 2018 submission [1] (built with https://github.com/jacamo-lang/jacamo/[JaCaMo]):
+
+* Andrei Ciortea, Olivier Boissier, and Alessandro Ricci. Engineering World-Wide Multi-Agent Systems with Hypermedia. In Engineering Multi-Agent Systems (V. Mascardi, A. Ricci, and D. Weyns,eds.), Springer International Publishing, 2018. To appear. http://emas2018.dibris.unige.it/images/papers/EMAS18-17.pdf[Read pre-print online]
 
 This project contains 2 sub-projects:
 
@@ -13,5 +15,3 @@ To run this demonstrator:
 * set up a hypermedia environment using https://github.com/andreiciortea/emas2018-yggdrasil/[Yggdrasil]
 
 * execute the default Gradle task with `./gradlew`
-
-[1] Andrei Ciortea, Olivier Boissier, and Alessandro Ricci. Engineering World-Wide Multi-Agent Systems with Hypermedia. In Engineering Multi-Agent Systems (V. Mascardi, A. Ricci, and D. Weyns,eds.), Springer International Publishing, 2018. To appear. http://emas2018.dibris.unige.it/images/papers/EMAS18-17.pdf[Read pre-print online]
