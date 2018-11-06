@@ -100,7 +100,7 @@ public class NotificationServerArtifact extends Artifact {
           .content(new StringContentProvider("{"
               + "\"hub.mode\" : \"subscribe\","
               + "\"hub.topic\" : \"" + artifactIRI + "\","
-              + "\"hub.callback\" : \"http://localhost:8081/notifications/\""
+              + "\"hub.callback\" : \"http://85.204.10.233:8081/notifications/\""
               + "}"), "application/json")
           .send();
       
