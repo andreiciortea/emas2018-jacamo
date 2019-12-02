@@ -1,8 +1,8 @@
 = EMAS 2018 Demonstrator Application
 
-Demonstrator application for our EMAS 2018 submission [1] (built with https://github.com/jacamo-lang/jacamo/[JaCaMo]):
+Demonstrator application for our EMAS 2018 submission (built with https://github.com/jacamo-lang/jacamo/[JaCaMo]):
 
-* Andrei Ciortea, Olivier Boissier, and Alessandro Ricci. Engineering World-Wide Multi-Agent Systems with Hypermedia. In Engineering Multi-Agent Systems (V. Mascardi, A. Ricci, and D. Weyns,eds.), Springer International Publishing, 2018. To appear. http://emas2018.dibris.unige.it/images/papers/EMAS18-17.pdf[Read pre-print online]
+* Ciortea A., Boissier O., Ricci A. (2019) Engineering World-Wide Multi-Agent Systems with Hypermedia. In: Weyns D., Mascardi V., Ricci A. (eds) Engineering Multi-Agent Systems. EMAS 2018. Lecture Notes in Computer Science, vol 11375. Springer, Cham. http://emas2018.dibris.unige.it/images/papers/EMAS18-17.pdf[Read pre-print online]
 
 This project contains 2 sub-projects:
 
@@ -10,8 +10,93 @@ This project contains 2 sub-projects:
 
 * a Turtle parser for the https://www.w3.org/TR/wot-thing-description/[W3C WoT Thing Description] in `wot-td-parser`
 
-To run this demonstrator:
+To use this JaCaMo application (see details below for running the EMAS 2018 demonstrator):
 
 * set up a hypermedia environment using https://github.com/andreiciortea/emas2018-yggdrasil/[Yggdrasil]
 
-* execute the default Gradle task with `./gradlew`
+* set the entry point for your agent in `emas2018-app/src/main/agt/simple_agent.asl` on line 3:
++
+----
+environment_iri("http://localhost:8080/environments/env1").
+----
+
+* execute the default Gradle task (e.g., with `./gradlew`) to start the JaCaMo application
+
+* for more information on programming multi-agent systems with JaCaMo, see the https://github.com/jacamo-lang/jacamo/[JaCaMo] documentation
+
+
+== Prerequisites
+
+* JDK 8+
+
+== How to Run the Demonstrator Locally
+
+A detailed description of the deployment setup for the EMAS 2018 demonstrator is available in our http://emas2018.dibris.unige.it/images/papers/EMAS18-17.pdf[EMAS 2018 submission]. A video of running the demonstrator is https://youtu.be/QeIJ9ov6w_E[available on YouTube]. The demonstrator showed in the video uses a Philips Hue light bulb and two https://github.com/andreiciortea/emas2018-yggdrasil/[Yggdrasil] nodes: one running on a VPS in the cloud and the other on a Raspberry PI in the local network.
+
+The following instructions will guide you through running this demonstrator on a single machine. You will first have to set up a hypermedia environment distributed across two local https://github.com/andreiciortea/emas2018-yggdrasil/[Yggdrasil] nodes. A number of scripts are provided to populate the hypermedia environment with the resources used in our demonstrator. The default setup uses local ports `8080` and `8085` for the two Yggdrasil nodes. To use different ports, you can update the provided config files and scripts.
+
+Instead of the Philips Hue ligh bulb, this local deployment will send HTTP requests to https://reqres.in/[ReqRes], a REST-like test API. To set up a ligh bulb, you can just update the WoT TDs provided in https://github.com/andreiciortea/emas2018-yggdrasil/[EMAS2018 Yggdrasil repository]: `scripts/light.ttl` and `scripts/light-CIE.ttl`.
+
+The following steps assume you have cloned both this repository (`emas2018-jacamo`) and the https://github.com/andreiciortea/emas2018-yggdrasil/[EMAS2018 Yggdrasil repository] (`emas2018-yggdrasil`).
+
+. Start the first Yggdrasil node:
++
+[source,bash]
+----
+cd emas2018-yggdrasil
+java -jar build/libs/emas2018-yggdrasil-0.0-SNAPSHOT-fat.jar -conf src/main/conf/config1.json
+----
+
+. In a new terminal, start the second Yggdrasil node (note: it uses a 2nd config file):
++
+[source,bash]
+----
+cd emas2018-yggdrasil
+java -jar build/libs/emas2018-yggdrasil-0.0-SNAPSHOT-fat.jar -conf src/main/conf/config2.json
+----
+
+. In a new terminal, set up the environment, workspace, and event generator artifact used in this demonstrator:
++
+[source,bash]
+----
+cd emas2018-yggdrasil/scripts/
+./register-env-wksp-eventgen.sh
+----
+
+. In a new terminal, you can then start the JaCaMo app (by executing the default Gradle task):
++
+[source,bash]
+----
+cd emas2018-jacamo
+gradle
+----
+
+. Once the CArtAgO environment is created (it should contain 1 workspace and the event generator artifact), you can start simulating events in a new terminal:
++
+[source,bash]
+----
+cd emas2018-yggdrasil/scripts/
+./sim-events.sh
+----
++
+This script will simulate "positive" and "negative" events alternatively with 4s delay in-between. At this point, the agent should receive the events, but it is not able to send any notifications to humans.
+
+. Register the Philips Hue artifact. In the terminal from step 3 (or a new terminal):
++
+[source,bash]
+----
+cd emas2018-yggdrasil/scripts/
+./dist-register-hue-artifact.sh
+----
++
+Once the artifact is created, the agent should now be able to signal events by flicking the Philips Hue light bulb. However, a human would not be able to distinguish the events in this way.
+
+. Update the WoT TD for the Philips Hue artifact:
++
+[source,bash]
+----
+cd emas2018-yggdrasil/scripts/
+./dist-update-hue-CIE-action.sh
+----
++
+Once the artifact is updated, the agent should now be able to use colored lights to signal positive and negative events.
