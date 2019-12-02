@@ -1,6 +1,6 @@
 /* Initial beliefs and rules */
 
-environment_iri("http://yggdrasill.andreiciortea.ro/environments/env1").
+environment_iri("http://localhost:8080/environments/env1").
 
 positive_color(0.409, 0.518).
 negative_color(0.167, 0.04).
