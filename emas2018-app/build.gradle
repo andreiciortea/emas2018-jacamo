@@ -12,10 +12,10 @@ sourceSets {
 }
 
 repositories {
-    jcenter()
-    flatDir {
-       dirs 'jacamo-jars'
-    }
+    mavenCentral()
+
+    maven { url "http://jacamo.sourceforge.net/maven2" }
+    maven { url "https://raw.github.com/jacamo-lang/mvn-repo/master" }
 }
 
 dependencies {
@@ -25,11 +25,7 @@ dependencies {
     
     compile group: 'org.eclipse.jetty.aggregate', name: 'jetty-all', version: '9.0.0.RC2'
 
-    compile name: 'cartago-2.3-SNAPSHOT'
-    
-    runtime name: 'jacamo-0.7-SNAPSHOT'
-    runtime name: 'jason-2.1'
-    runtime name: 'jaca-2.3-SNAPSHOT'
+    compile group: 'org.jacamo', name: 'jacamo', version: '0.8-SNAPSHOT'
 }
 
 task runJaCaMo(type: JavaExec, dependsOn: classes) {
